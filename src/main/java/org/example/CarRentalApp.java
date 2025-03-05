@@ -1,3 +1,4 @@
+
 package org.example;
 
 import javax.swing.*;
@@ -85,15 +86,25 @@ public class CarRentalApp extends JFrame {
         loginButton.addActionListener(e -> {
             String username = usernameField.getText();
             String password = new String(passwordField.getPassword());
-            role = (String) roleComboBox.getSelectedItem();
+            String role = (String) roleComboBox.getSelectedItem();
 
             db = new Database(username, password, role);
 
-            try {
-                db.initializeDatabase();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Ошибка инициализации БД: " + ex.getMessage(),
-                        "Ошибка", JOptionPane.ERROR_MESSAGE);
+            // Если зашёл админ, предложим создать базу данных
+            if (role.equals("admin")) {
+                String dbName = JOptionPane.showInputDialog(this, "Введите имя новой базы данных:", "Создание БД",
+                        JOptionPane.QUESTION_MESSAGE);
+
+                if (dbName != null && !dbName.trim().isEmpty()) {
+                    try {
+                        db.createDatabase(dbName);
+                        db.initializeDatabase(); // Теперь можно инициализировать
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, "Ошибка создания/инициализации БД: " + ex.getMessage(),
+                                "Ошибка", JOptionPane.ERROR_MESSAGE);
+                        return; // Не продолжаем, если ошибка
+                    }
+                }
             }
 
             initMainPanel();
@@ -102,6 +113,7 @@ public class CarRentalApp extends JFrame {
             revalidate();
             repaint();
         });
+
     }
 
     private void initMainPanel() {
@@ -205,12 +217,6 @@ public class CarRentalApp extends JFrame {
         operationsPanel.add(commonPanel);
         mainPanel.add(operationsPanel, BorderLayout.NORTH);
 
-        if (role.equals("guest")) {
-            adminPanel.setEnabled(false);
-            for (Component comp : adminPanel.getComponents()) {
-                comp.setEnabled(false);
-            }
-        }
 
         // Назначение слушателей событий
         createDbButton.addActionListener(e -> {
@@ -298,16 +304,11 @@ public class CarRentalApp extends JFrame {
         });
 
         searchCarButton.addActionListener(e -> {
-            String model = searchModelField.getText();
-            try {
-                List<String> result = db.searchCar(model);
-                outputArea.append("Результаты поиска:\n");
-                for (String row : result) {
-                    outputArea.append(row + "\n");
-                }
-
-            } catch (Exception ex) {
-                outputArea.append("Ошибка при поиске: " + ex.getMessage() + "\n");
+            String model = searchModelField.getText().trim();
+            if (!model.isEmpty()) {
+                loadSearchResults(model); // Загружаем поиск в таблицу
+            } else {
+                JOptionPane.showMessageDialog(this, "Введите модель для поиска.");
             }
         });
 
@@ -327,4 +328,18 @@ public class CarRentalApp extends JFrame {
             JOptionPane.showMessageDialog(this, "Ошибка при загрузке данных: " + e.getMessage());
         }
     }
+
+    private void loadSearchResults(String model) {
+        try {
+            List<Object[]> cars = db.searchCar(model);
+            tableModel.setRowCount(0); // Очистить таблицу перед загрузкой новых данных
+
+            for (Object[] car : cars) {
+                tableModel.addRow(car); // Добавляем строку в таблицу
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Ошибка при загрузке данных: " + e.getMessage());
+        }
+    }
+
 }

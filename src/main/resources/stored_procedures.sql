@@ -67,15 +67,21 @@ BEGIN
 END;
 $$;
 
--- Функция для поиска записей по полю model (поиск с использованием ILIKE)
-CREATE OR REPLACE FUNCTION sp_search_car(p_model TEXT)
-RETURNS TABLE(id INTEGER, brand TEXT, model TEXT, year INTEGER, price NUMERIC)
-LANGUAGE plpgsql
-AS $$
+-- Функция для поиска записей по полю model
+
+DROP FUNCTION IF EXISTS sp_search_car(TEXT);
+
+CREATE OR REPLACE FUNCTION sp_search_car(_model TEXT)
+RETURNS TABLE(id INTEGER, brand TEXT, model TEXT, year INTEGER, price NUMERIC) AS $$
 BEGIN
-    RETURN QUERY SELECT * FROM cars WHERE model ILIKE '%' || p_model || '%';
+    RETURN QUERY
+    SELECT cars.id, cars.brand, cars.model, cars.year, cars.price  -- Указываем имя таблицы явно
+    FROM cars
+    WHERE cars.model = _model;  -- Не путать model с параметром
 END;
-$$;
+$$ LANGUAGE plpgsql;
+
+
 
 -- Процедура для обновления записи (по id)
 CREATE OR REPLACE PROCEDURE sp_update_car(p_id INTEGER, p_brand TEXT, p_model TEXT, p_year INTEGER, p_price NUMERIC)

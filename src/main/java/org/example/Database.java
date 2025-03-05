@@ -15,10 +15,9 @@ public class Database {
     private String password;
     private String role;
 
+    private String currentDatabase = null;
     // URL для подключения к базе данных car_rental и к системной базе postgres (для create/drop базы)
-    private static final String ADMIN_CAR_DB_URL = "jdbc:postgresql://localhost:5432/car_rental";
     private static final String ADMIN_POSTGRES_URL = "jdbc:postgresql://localhost:5432/postgres";
-    private static final String GUEST_CAR_DB_URL = "jdbc:postgresql://localhost:5432/car_rental";
 
     public Database(String username, String password, String role) {
         this.username = username;
@@ -30,12 +29,21 @@ public class Database {
         if (role.equals("admin")) {
             if (usePostgres) {
                 return DriverManager.getConnection(ADMIN_POSTGRES_URL, username, password);
+            } else if (currentDatabase != null) {
+                // Подключаемся к новой базе
+                String dbUrl = "jdbc:postgresql://localhost:5432/" + currentDatabase;
+                return DriverManager.getConnection(dbUrl, username, password);
             } else {
-                return DriverManager.getConnection(ADMIN_CAR_DB_URL, username, password);
+                throw new SQLException("Ошибка: база данных не была создана!");
             }
         }
-        if (role.equals("guest")){
-            return DriverManager.getConnection(GUEST_CAR_DB_URL, username, password);
+        if (role.equals("guest")) {
+            if (currentDatabase != null) {
+                String dbUrl = "jdbc:postgresql://localhost:5432/" + currentDatabase;
+                return DriverManager.getConnection(dbUrl, username, password);
+            } else {
+                throw new SQLException("Ошибка: база данных не была создана!");
+            }
         }
         return null;
     }
@@ -133,6 +141,7 @@ public class Database {
              Statement stmt = conn.createStatement()) {
             String sql = "CALL public.sp_create_database('" + dbName.replace("'", "''") + "')";
             stmt.execute(sql);
+            currentDatabase = dbName; // Сохраняем имя созданной базы
         }
     }
 
@@ -145,9 +154,12 @@ public class Database {
     }
 
     public void createTable() throws SQLException {
+        if (currentDatabase == null) {
+            throw new SQLException("Ошибка: база данных не была создана!");
+        }
+
         try (Connection conn = getConnection(false);
              Statement stmt = conn.createStatement()) {
-            // Выполняем вызов хранимой процедуры для создания таблицы
             String sql = "CALL public.sp_create_table()";
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -159,7 +171,7 @@ public class Database {
 
     public void clearTable() throws SQLException {
         try (Connection conn = getConnection(false);
-            Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             String sql = "CALL public.sp_clear_table()";
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -170,7 +182,7 @@ public class Database {
 
     public void insertCar(String brand, String model, int year, BigDecimal price) throws SQLException {
         try (Connection conn = getConnection(false);
-            Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             String sql = String.format(
                     "CALL sp_insert_car('%s', '%s', %d, %s)",
                     brand.replace("'", "''"),
@@ -183,8 +195,8 @@ public class Database {
         } catch (SQLException e) {
             e.printStackTrace();
             throw new SQLException("Error while adding car: " + e.getMessage());
-    }
         }
+    }
 
     public void updateCar(int id, String brand, String model, int year, BigDecimal price) throws SQLException {
         try (Connection conn = getConnection(false);
@@ -213,25 +225,30 @@ public class Database {
     }
 
 
-    public List<String> searchCar(String model) throws SQLException {
-        List<String> results = new ArrayList<>();
-        try (Connection conn = getConnection(false)) {
-            CallableStatement stmt = conn.prepareCall("{ ? = call sp_search_car(?) }");
-            stmt.registerOutParameter(1, Types.OTHER);
-            stmt.setString(2, model);
-            stmt.execute();
-            ResultSet rs = (ResultSet) stmt.getObject(1);
+    public List<Object[]> searchCar(String model) throws SQLException {
+        List<Object[]> results = new ArrayList<>();
+        String sql = "SELECT id, brand, model, year, price FROM cars WHERE model = ?"; // Запрос на поиск
+
+        try (Connection conn = getConnection(false);
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, model);
+            ResultSet rs = stmt.executeQuery();
+
             while (rs.next()) {
-                int id = rs.getInt("id");
-                String brand = rs.getString("brand");
-                String carModel = rs.getString("model");
-                int year = rs.getInt("year");
-                BigDecimal price = rs.getBigDecimal("price");
-                results.add(id + " | " + brand + " | " + carModel + " | " + year + " | " + price);
+                Object[] row = {
+                        rs.getInt("id"),
+                        rs.getString("brand"),
+                        rs.getString("model"),
+                        rs.getInt("year"),
+                        rs.getBigDecimal("price")
+                };
+                results.add(row);
             }
         }
         return results;
     }
+
 
     public List<String> viewCars() throws SQLException {
         List<String> results = new ArrayList<>();

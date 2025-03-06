@@ -1,13 +1,9 @@
-
 CREATE EXTENSION IF NOT EXISTS dblink;
 
--- BEGIN SYSTEM PROCEDURES
--- Процедура для создания базы данных (параметр TEXT)
 CREATE OR REPLACE PROCEDURE sp_create_database(dbname TEXT)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- Передаём параметры аутентификации в строке подключения для dblink_exec
     PERFORM dblink_exec(
       'host=localhost dbname=postgres user=admin_role password=admin',
       'CREATE DATABASE ' || quote_ident(dbname)
@@ -15,7 +11,6 @@ BEGIN
 END;
 $$;
 
--- Процедура для удаления базы данных (параметр TEXT)
 CREATE OR REPLACE PROCEDURE sp_drop_database(dbname TEXT)
 LANGUAGE plpgsql
 AS $$
@@ -27,10 +22,6 @@ BEGIN
 END;
 $$;
 
--- END SYSTEM PROCEDURES
-
--- BEGIN CAR_RENTAL PROCEDURES
--- Процедура для создания таблицы
 CREATE OR REPLACE PROCEDURE sp_create_table()
 LANGUAGE plpgsql
 AS $$
@@ -46,7 +37,6 @@ BEGIN
 END;
 $$;
 
--- Процедура для очистки таблицы
 CREATE OR REPLACE PROCEDURE sp_clear_table()
 LANGUAGE plpgsql
 AS $$
@@ -55,7 +45,7 @@ BEGIN
 END;
 $$;
 
--- Процедура для вставки новой записи (автомобиля)
+
 CREATE OR REPLACE PROCEDURE sp_insert_car(p_brand TEXT, p_model TEXT, p_year INTEGER, p_price NUMERIC)
 LANGUAGE plpgsql
 AS $$
@@ -64,23 +54,18 @@ BEGIN
 END;
 $$;
 
--- Функция для поиска записей по полю model
-
 DROP FUNCTION IF EXISTS sp_search_car(TEXT);
 
 CREATE OR REPLACE FUNCTION sp_search_car(_model TEXT)
 RETURNS TABLE(id INTEGER, brand TEXT, model TEXT, year INTEGER, price NUMERIC) AS $$
 BEGIN
     RETURN QUERY
-    SELECT cars.id, cars.brand, cars.model, cars.year, cars.price  -- Указываем имя таблицы явно
+    SELECT cars.id, cars.brand, cars.model, cars.year, cars.price
     FROM cars
-    WHERE cars.model = _model;  -- Не путать model с параметром
+    WHERE cars.model = _model;
 END;
 $$ LANGUAGE plpgsql;
 
-
-
--- Процедура для обновления записи (по id)
 CREATE OR REPLACE PROCEDURE sp_update_car(p_id INTEGER, p_brand TEXT, p_model TEXT, p_year INTEGER, p_price NUMERIC)
 LANGUAGE plpgsql
 AS $$
@@ -89,7 +74,6 @@ BEGIN
 END;
 $$;
 
--- Процедура для удаления записи по значению поля model
 CREATE OR REPLACE PROCEDURE sp_delete_car_by_model(p_model TEXT)
 LANGUAGE plpgsql
 AS $$
@@ -98,7 +82,6 @@ BEGIN
 END;
 $$;
 
--- Функция для просмотра всех записей из таблицы
 CREATE OR REPLACE FUNCTION sp_view_cars()
 RETURNS TABLE(id INTEGER, brand TEXT, model TEXT, year INTEGER, price NUMERIC)
 LANGUAGE plpgsql

@@ -16,7 +16,6 @@ public class Database {
     private String role;
 
     private String currentDatabase = null;
-    // URL для подключения к базе данных car_rental и к системной базе postgres (для create/drop базы)
     private static final String ADMIN_POSTGRES_URL = "jdbc:postgresql://localhost:5432/postgres";
 
     public Database(String username, String password, String role) {
@@ -67,14 +66,12 @@ public class Database {
 
 
     public void initializeDatabase() throws SQLException, IOException {
-        // Загружаем скрипт из ресурсов
         InputStream in = getClass().getClassLoader().getResourceAsStream("stored_procedures.sql");
         if (in == null) {
             throw new IOException("Файл stored_procedures.sql не найден в ресурсах.");
         }
         String script = readFromInputStream(in);
 
-        // Разбиваем скрипт на две части по разделителю
         String systemMarker = "-- BEGIN CAR_RENTAL PROCEDURES";
         int splitIndex = script.indexOf(systemMarker);
         if (splitIndex < 0) {
@@ -89,13 +86,11 @@ public class Database {
             }
         }
 
-        // Выполнение скрипта car_rental (общего для всех)
         try (Connection conn = getConnection(false)) {
             runSqlScript(conn, carRentalScript);
         }
     }
 
-    // Вспомогательный метод для чтения InputStream в строку
     private String readFromInputStream(InputStream inputStream) throws IOException {
         StringBuilder resultStringBuilder = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
@@ -107,8 +102,6 @@ public class Database {
         return resultStringBuilder.toString();
     }
 
-
-    // Простой парсер SQL-скрипта, учитывающий блоки $$ (без идеальной поддержки всех случаев)
     private void runSqlScript(Connection conn, String script) throws SQLException {
         StringBuilder command = new StringBuilder();
         boolean inDollarBlock = false;
@@ -116,16 +109,13 @@ public class Database {
                 new java.io.ByteArrayInputStream(script.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                // Пропускаем пустые строки и комментарии (начинающиеся с --)
                 if (line.trim().isEmpty() || line.trim().startsWith("--")) {
                     continue;
                 }
-                // Если встречается $$, переключаем флаг блока
                 if (line.contains("$$")) {
                     inDollarBlock = !inDollarBlock;
                 }
                 command.append(line).append("\n");
-                // Если не в блоке $$ и строка заканчивается точкой с запятой, выполняем команду
                 if (!inDollarBlock && line.trim().endsWith(";")) {
                     String sql = command.toString();
                     try (Statement stmt = conn.createStatement()) {
@@ -137,7 +127,6 @@ public class Database {
                     command.setLength(0);
                 }
             }
-            // На случай, если осталась команда без завершающего символа
             if (command.length() > 0) {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.execute(command.toString());
@@ -153,7 +142,7 @@ public class Database {
              Statement stmt = conn.createStatement()) {
             String sql = "CALL public.sp_create_database('" + dbName.replace("'", "''") + "')";
             stmt.execute(sql);
-            currentDatabase = dbName; // Сохраняем имя созданной базы
+            currentDatabase = dbName;
         }
     }
 
@@ -239,7 +228,7 @@ public class Database {
 
     public List<Object[]> searchCar(String model) throws SQLException {
         List<Object[]> results = new ArrayList<>();
-        String sql = "SELECT id, brand, model, year, price FROM cars WHERE model = ?"; // Запрос на поиск
+        String sql = "SELECT id, brand, model, year, price FROM cars WHERE model = ?";
 
         try (Connection conn = getConnection(false);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -267,7 +256,7 @@ public class Database {
         try (Connection conn = getConnection(false);
              CallableStatement stmt = conn.prepareCall("{ call sp_view_cars() }")) {
 
-            boolean hasResults = stmt.execute(); // Выполнить процедуру
+            boolean hasResults = stmt.execute();
 
             if (hasResults) {
                 try (ResultSet rs = stmt.getResultSet()) {

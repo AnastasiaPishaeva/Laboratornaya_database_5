@@ -1,4 +1,3 @@
-
 package org.example;
 
 import javax.swing.*;
@@ -10,20 +9,17 @@ import java.util.List;
 
 public class CarRentalApp extends JFrame {
     private Database db;
-    private String currentRole; // "admin" или "guest"
+    private String currentRole;
 
-    // Компоненты панели логина
     private JPanel loginPanel;
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JComboBox<String> roleComboBox;
     private JButton loginButton;
 
-    // Основная панель
     private JPanel mainPanel;
     private JTextArea outputArea;
 
-    // Панель для операций администратора
     private JPanel adminPanel;
     private JTextField dbNameField;
     private JButton createDbButton;
@@ -46,7 +42,6 @@ public class CarRentalApp extends JFrame {
     private JTable carTable;
     private DefaultTableModel tableModel;
 
-    // Панель для общих операций (доступных и гостю)
     private JPanel commonPanel;
     private JTextField searchModelField;
     private JButton searchCarButton;
@@ -92,7 +87,6 @@ public class CarRentalApp extends JFrame {
 
             db = new Database(username, password, role);
 
-            // Если зашёл админ, предложим создать базу данных
             if (role.equals("admin")) {
                 String dbName = JOptionPane.showInputDialog(this, "Введите имя новой базы данных:", "Создание БД",
                         JOptionPane.QUESTION_MESSAGE);
@@ -100,11 +94,11 @@ public class CarRentalApp extends JFrame {
                 if (dbName != null && !dbName.trim().isEmpty()) {
                     try {
                         db.createDatabase(dbName);
-                        db.initializeDatabase(); // Теперь можно инициализировать
+                        db.initializeDatabase();
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(this, "Ошибка создания/инициализации БД: " + ex.getMessage(),
                                 "Ошибка", JOptionPane.ERROR_MESSAGE);
-                        return; // Не продолжаем, если ошибка
+                        return;
                     }
                 }
             }
@@ -121,7 +115,6 @@ public class CarRentalApp extends JFrame {
     private void initMainPanel() {
         mainPanel = new JPanel(new BorderLayout());
 
-        // Таблица для автомобилей
         tableModel = new DefaultTableModel(new String[]{"ID", "Brand", "Model", "Year", "Price"}, 0);
         carTable = new JTable(tableModel);
         JScrollPane tableScrollPane = new JScrollPane(carTable);
@@ -134,7 +127,6 @@ public class CarRentalApp extends JFrame {
 
         JPanel operationsPanel = new JPanel(new GridLayout(2, 1));
 
-        // Панель администратора
         adminPanel = new JPanel();
         adminPanel.setLayout(new BoxLayout(adminPanel, BoxLayout.Y_AXIS));
         adminPanel.setBorder(BorderFactory.createTitledBorder("Операции администратора"));
@@ -156,7 +148,6 @@ public class CarRentalApp extends JFrame {
         tablePanel.add(clearTableButton);
         adminPanel.add(tablePanel);
 
-        // Вставка новой записи
         JPanel insertPanel = new JPanel(new FlowLayout());
         insertPanel.add(new JLabel("Brand:"));
         brandField = new JTextField(8);
@@ -174,7 +165,6 @@ public class CarRentalApp extends JFrame {
         insertPanel.add(insertCarButton);
         adminPanel.add(insertPanel);
 
-        // Обновление записи
         JPanel updatePanel = new JPanel(new FlowLayout());
         updatePanel.add(new JLabel("ID:"));
         updateIdField = new JTextField(4);
@@ -195,7 +185,6 @@ public class CarRentalApp extends JFrame {
         updatePanel.add(updateCarButton);
         adminPanel.add(updatePanel);
 
-        // Удаление записи по полю model
         JPanel deletePanel = new JPanel(new FlowLayout());
         deletePanel.add(new JLabel("Model:"));
         deleteModelField = new JTextField(8);
@@ -212,7 +201,6 @@ public class CarRentalApp extends JFrame {
             deleteCarButton.setEnabled(false);
         }
 
-        // Общие операции (доступны и гостю)
         commonPanel = new JPanel(new FlowLayout());
         commonPanel.setBorder(BorderFactory.createTitledBorder("Общие операции"));
         commonPanel.add(new JLabel("Search Model:"));
@@ -228,7 +216,6 @@ public class CarRentalApp extends JFrame {
         mainPanel.add(operationsPanel, BorderLayout.NORTH);
 
 
-        // Назначение слушателей событий
         createDbButton.addActionListener(e -> {
             String dbName = dbNameField.getText();
             try {
@@ -316,7 +303,7 @@ public class CarRentalApp extends JFrame {
         searchCarButton.addActionListener(e -> {
             String model = searchModelField.getText().trim();
             if (!model.isEmpty()) {
-                loadSearchResults(model); // Загружаем поиск в таблицу
+                loadSearchResults(model);
             } else {
                 JOptionPane.showMessageDialog(this, "Введите модель для поиска.");
             }
@@ -342,10 +329,10 @@ public class CarRentalApp extends JFrame {
     private void loadSearchResults(String model) {
         try {
             List<Object[]> cars = db.searchCar(model);
-            tableModel.setRowCount(0); // Очистить таблицу перед загрузкой новых данных
+            tableModel.setRowCount(0);
 
             for (Object[] car : cars) {
-                tableModel.addRow(car); // Добавляем строку в таблицу
+                tableModel.addRow(car);
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Ошибка при загрузке данных: " + e.getMessage());

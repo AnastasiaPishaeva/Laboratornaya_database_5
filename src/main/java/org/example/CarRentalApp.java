@@ -10,7 +10,7 @@ import java.util.List;
 
 public class CarRentalApp extends JFrame {
     private Database db;
-    private String role; // "admin" или "guest"
+    private String currentRole; // "admin" или "guest"
 
     // Компоненты панели логина
     private JPanel loginPanel;
@@ -87,6 +87,8 @@ public class CarRentalApp extends JFrame {
             String username = usernameField.getText();
             String password = new String(passwordField.getPassword());
             String role = (String) roleComboBox.getSelectedItem();
+
+            currentRole = role;
 
             db = new Database(username, password, role);
 
@@ -201,6 +203,14 @@ public class CarRentalApp extends JFrame {
         deleteCarButton = new JButton("Удалить автомобиль по Model");
         deletePanel.add(deleteCarButton);
         adminPanel.add(deletePanel);
+
+        if (currentRole.equals("guest")) {
+            createDbButton.setEnabled(false);
+            dropDbButton.setEnabled(false);
+            insertCarButton.setEnabled(false);
+            updateCarButton.setEnabled(false);
+            deleteCarButton.setEnabled(false);
+        }
 
         // Общие операции (доступны и гостю)
         commonPanel = new JPanel(new FlowLayout());

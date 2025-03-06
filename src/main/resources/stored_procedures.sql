@@ -27,9 +27,6 @@ BEGIN
 END;
 $$;
 
--- Назначение прав для системных процедур
-GRANT EXECUTE ON PROCEDURE sp_create_database(TEXT) TO admin_role;
-GRANT EXECUTE ON PROCEDURE sp_drop_database(TEXT) TO admin_role;
 -- END SYSTEM PROCEDURES
 
 -- BEGIN CAR_RENTAL PROCEDURES
@@ -111,15 +108,3 @@ BEGIN
 END;
 $$;
 
--- Назначение прав для процедур и функций аренды автомобилей
-GRANT EXECUTE ON PROCEDURE sp_create_table() TO admin_role;
-GRANT EXECUTE ON PROCEDURE sp_clear_table() TO admin_role;
-GRANT EXECUTE ON PROCEDURE sp_insert_car(TEXT, TEXT, INTEGER, NUMERIC) TO admin_role;
-GRANT EXECUTE ON FUNCTION sp_search_car(TEXT) TO admin_role;
-GRANT EXECUTE ON PROCEDURE sp_update_car(INTEGER, TEXT, TEXT, INTEGER, NUMERIC) TO admin_role;
-GRANT EXECUTE ON PROCEDURE sp_delete_car_by_model(TEXT) TO admin_role;
-GRANT EXECUTE ON FUNCTION sp_view_cars() TO admin_role;
-
-GRANT EXECUTE ON FUNCTION sp_search_car(TEXT) TO guest_role;
-GRANT EXECUTE ON FUNCTION sp_view_cars() TO guest_role;
--- END CAR_RENTAL PROCEDURES

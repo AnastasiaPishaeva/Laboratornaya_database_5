@@ -25,35 +25,47 @@ public class Database {
         this.role = role;
     }
 
+    private boolean databaseExists(String dbName) throws SQLException {
+        String checkDbQuery = "SELECT 1 FROM pg_database WHERE datname = ?";
+
+        try (Connection conn = DriverManager.getConnection(ADMIN_POSTGRES_URL, username, password);
+             PreparedStatement stmt = conn.prepareStatement(checkDbQuery)) {
+
+            stmt.setString(1, dbName);
+
+            ResultSet rs = stmt.executeQuery();
+            boolean exists = rs.next();
+            return exists;
+        }
+    }
+
     private Connection getConnection(boolean usePostgres) throws SQLException {
         if (role.equals("admin")) {
             if (usePostgres) {
                 return DriverManager.getConnection(ADMIN_POSTGRES_URL, username, password);
             } else if (currentDatabase != null) {
-                // Подключаемся к новой базе
                 String dbUrl = "jdbc:postgresql://localhost:5432/" + currentDatabase;
                 return DriverManager.getConnection(dbUrl, username, password);
             } else {
                 throw new SQLException("Ошибка: база данных не была создана!");
             }
         }
+
         if (role.equals("guest")) {
-            if (currentDatabase != null) {
-                String dbUrl = "jdbc:postgresql://localhost:5432/" + currentDatabase;
-                return DriverManager.getConnection(dbUrl, username, password);
-            } else {
-                throw new SQLException("Ошибка: база данных не была создана!");
+            String guestDbName = "car_rental";
+            if (!databaseExists(guestDbName)) {
+                throw new SQLException("Ошибка: база данных " + guestDbName + " не найдена!");
             }
+            String dbUrl = "jdbc:postgresql://localhost:5432/" + guestDbName;
+
+            return DriverManager.getConnection(dbUrl, username, password);
         }
-        return null;
+
+        throw new SQLException("Ошибка: неизвестная роль!");
     }
 
-    /**
-     * Инициализация базы – выполнение SQL-скрипта из ресурсов.
-     * Сценарий разделён на две части:
-     * 1. Системные процедуры (исполняются на базе postgres)
-     * 2. Процедуры для аренды автомобилей (исполняются на базе car_rental)
-     */
+
+
     public void initializeDatabase() throws SQLException, IOException {
         // Загружаем скрипт из ресурсов
         InputStream in = getClass().getClassLoader().getResourceAsStream("stored_procedures.sql");
